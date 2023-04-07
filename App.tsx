@@ -1,6 +1,9 @@
 import {StatusBar} from 'expo-status-bar'
 import { useState } from 'react';
-import {StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator} from 'react-native'
+import axios from 'axios';
+import FormData from 'form-data';
+import * as FileSystem from 'expo-file-system';
+import {StyleSheet, Text, View, TouchableOpacity, Alert} from 'react-native'
 import {Camera} from 'expo-camera'
 import CameraPage from './CameraPage';
 import CameraPreview from './CameraPreview';
@@ -11,6 +14,7 @@ export default function App() {
   const [previewVisible, setPreviewVisible] = useState(false)
   const [capturedImage, setCapturedImage] = useState<any>(null)
   const [waitingResponse, setWaitingResponse] = useState(false)
+  const [likelyMelanoma, setLikelyMelanoma] = useState(null)
 
   const __startCamera = async () => {
     const {status} = await Camera.requestCameraPermissionsAsync()
@@ -22,9 +26,26 @@ export default function App() {
     }
   }
 
-  const __savePhoto = () => {
+  const payloadBuilder = () => {
+    let data = new FormData();
+    data.append('file', FileSystem.uploadAsync(capturedImage)); //base64?
+    return data
+  }
+
+  const __savePhoto = async () => {
     setWaitingResponse(true)
-    //call API
+
+    const headers = {'Authorization': 'pessach'}
+
+    await axios.post('https://sc-detector-api-jpezawplgq-rj.a.run.app/predict', payloadBuilder(),{headers})
+    .then((response) => {
+      console.log(response);
+      setLikelyMelanoma(response.data.melanoma);
+      setWaitingResponse(false);
+    })
+    .catch((e)=>{
+      console.log(e);
+    })
   }
   const __retakePicture = () => {
     setCapturedImage(null)
