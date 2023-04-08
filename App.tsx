@@ -26,18 +26,21 @@ export default function App() {
     }
   }
 
-  const payloadBuilder = () => {
-    let data = new FormData();
-    data.append('file', FileSystem.uploadAsync(capturedImage)); //base64?
+  const payloadBuilder = async () => {
+    const base64 = await FileSystem.readAsStringAsync(capturedImage.uri, { encoding: 'base64' });
+    let data = JSON.stringify({
+      "image": base64
+    })
     return data
   }
 
   const __savePhoto = async () => {
     setWaitingResponse(true)
 
-    const headers = {'Authorization': 'pessach'}
+    const headers = {'Authorization': 'pessach'};
+    const payload = await payloadBuilder();
 
-    await axios.post('https://sc-detector-api-jpezawplgq-rj.a.run.app/predict', payloadBuilder(),{headers})
+    await axios.post('https://sc-detector-api-jpezawplgq-rj.a.run.app/predict', payload ,{headers})
     .then((response) => {
       console.log(response);
       setLikelyMelanoma(response.data.melanoma);
@@ -45,6 +48,7 @@ export default function App() {
     })
     .catch((e)=>{
       console.log(e);
+      setWaitingResponse(false);
     })
   }
   const __retakePicture = () => {
