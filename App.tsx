@@ -1,19 +1,20 @@
 import {StatusBar} from 'expo-status-bar'
 import { useState } from 'react';
 import axios from 'axios';
-import FormData from 'form-data';
 import * as FileSystem from 'expo-file-system';
-import {StyleSheet, Text, View, TouchableOpacity, Alert} from 'react-native'
-import {Camera} from 'expo-camera'
+import {StyleSheet, Text, View, TouchableOpacity, Alert} from 'react-native';
+import {Camera} from 'expo-camera';
 import CameraPage from './CameraPage';
 import CameraPreview from './CameraPreview';
 import LoadingScreen from './LoadingScreen';
+import PredictionPage from './PredictionPage';
 
 export default function App() {
   const [startCamera, setStartCamera] = useState(false)
   const [previewVisible, setPreviewVisible] = useState(false)
   const [capturedImage, setCapturedImage] = useState<any>(null)
   const [waitingResponse, setWaitingResponse] = useState(false)
+  const [receivedResponse, setReceivedResponse] = useState(false)
   const [likelyMelanoma, setLikelyMelanoma] = useState(null)
 
   const __startCamera = async () => {
@@ -37,12 +38,16 @@ export default function App() {
   const __savePhoto = async () => {
     setWaitingResponse(true)
 
-    const headers = {'Authorization': 'pessach'};
+    const headers = {
+      'Authorization': 'pessach',
+      'Content-Type': 'application/json'
+    };
     const payload = await payloadBuilder();
 
     await axios.post('https://sc-detector-api-jpezawplgq-rj.a.run.app/predict', payload ,{headers})
     .then((response) => {
       console.log(response);
+      setReceivedResponse(true);
       setLikelyMelanoma(response.data.melanoma);
       setWaitingResponse(false);
     })
@@ -66,7 +71,12 @@ export default function App() {
             width: '100%'
           }}
         > 
-        {waitingResponse ? <LoadingScreen/> :
+        { receivedResponse ? <PredictionPage
+                                likelyMelanoma={likelyMelanoma}
+                                setPreviewVisible={setPreviewVisible}
+                                setReceivedResponse={setReceivedResponse}
+                                setStartCamera={setStartCamera} /> :
+        waitingResponse ? <LoadingScreen/> :
           previewVisible && capturedImage ? (
             <CameraPreview photo={capturedImage} savePhoto={__savePhoto} retakePicture={__retakePicture} />
           ) : (
